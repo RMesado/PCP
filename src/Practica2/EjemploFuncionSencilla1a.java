@@ -1,7 +1,7 @@
 package Practica2;
 
 // ============================================================================
-class EjemploFuncionCostosa1a {
+class EjemploFuncionSencilla1a {
     // --------------------------------------------------------------------------
     public static void main(String args[]) throws InterruptedException {
         int n, numHebras;
@@ -67,7 +67,7 @@ class EjemploFuncionCostosa1a {
         t2 = System.nanoTime();
         ttC = ((double) (t2 - t1)) / 1.0e9;
         System.out.println("Tiempo con paralelización cíclica (seg.):    " + ttC);
-        System.out.println("Incremento de tiempo respecto al secuencial: "+ tt/ttC);
+        System.out.println("Incremento de tiempo respecto al secuencial: " + tt / ttC);
         //// imprimeResultado( vectorX, vectorY );
         // Comprueba el resultado.
         sumaX = sumaVector(vectorX);
@@ -96,7 +96,7 @@ class EjemploFuncionCostosa1a {
         t2 = System.nanoTime();
         ttB = ((double) (t2 - t1)) / 1.0e9;
         System.out.println("Tiempo con paralelización Bloques (seg.):    " + ttB);
-        System.out.println("Incremento de tiempo respecto al secuencial: "+ tt/ttB);
+        System.out.println("Incremento de tiempo respecto al secuencial: " + tt / ttB);
         //// imprimeResultado( vectorX, vectorY );
         // Comprueba el resultado.
         sumaX = sumaVector(vectorX);
@@ -137,7 +137,7 @@ class EjemploFuncionCostosa1a {
 
     // --------------------------------------------------------------------------
     static double evaluaFuncion(double x) {
-        return Math.sin(Math.exp(-x) + Math.log1p(x));
+        return 3.5 * x;
     }
 
     // --------------------------------------------------------------------------

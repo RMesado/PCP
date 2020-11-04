@@ -23,7 +23,42 @@ class EjemploMuestraNumeros1a {
             System.exit(-1);
         }
         //
-        // Implementacion paralela con distribucion ciclica o por bloques.
+        /*
+        //Implementación paralela con distribución paralela
+        class MiHebraCiclica extends Thread {
+            int miId;
+            int numHebras;
+            int n;
+
+            public MiHebraCiclica(int miId, int numHebras, int n) {
+                this.miId = miId;
+                this.numHebras = numHebras;
+                this.n = n;
+            }
+
+            public void run() {
+                int iniElem = miId;
+                int finElem = n;
+                for (int i = iniElem; i <= finElem; i += numHebras) {
+                    System.out.println(" Hebra " + miId + ": Numero: " + i);
+                }
+
+            }
+        }
+        //Crea y arranca el vector de hebras.
+        MiHebraCiclica[] vectorCiclicas = new MiHebraCiclica[numHebras];
+
+        for (int i = 0; i < numHebras; i++) {
+            vectorCiclicas[i] = new MiHebraCiclica(i, numHebras, n);
+        }
+        for (MiHebraCiclica vectorCiclica : vectorCiclicas) {
+            vectorCiclica.start();
+        }
+        for (MiHebraCiclica vectorCiclica : vectorCiclicas) {
+            vectorCiclica.join();
+        }*/
+
+        // Implementacion paralela con distribucion por bloques.
         class MiHebraBloque extends Thread {
             int miId;
             int numHebras;
