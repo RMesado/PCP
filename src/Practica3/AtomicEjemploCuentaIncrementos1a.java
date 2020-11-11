@@ -3,7 +3,7 @@ package Practica3;
 import java.util.concurrent.atomic.AtomicInteger;
 
 // ============================================================================
-class CopiaCuentaIncrementos {
+class AtomicCuentaIncrementos {
     // ============================================================================
     final AtomicInteger numIncrementos = new AtomicInteger();
 
@@ -23,10 +23,10 @@ class CopiaCuentaIncrementos {
 class MiHebra2 extends Thread {
     // ============================================================================
     int tope;
-    CopiaCuentaIncrementos c;
+    AtomicCuentaIncrementos c;
 
     // --------------------------------------------------------------------------
-    public MiHebra2(int tope, CopiaCuentaIncrementos c) {
+    public MiHebra2(int tope, AtomicCuentaIncrementos c) {
         this.tope = tope;
         this.c = c;
     }
@@ -40,7 +40,7 @@ class MiHebra2 extends Thread {
 }
 
 // ============================================================================
-class CopiaEjemploCuentaIncrementos {
+class AtomicEjemploCuentaIncrementos {
 // ============================================================================
 
     // --------------------------------------------------------------------------
@@ -68,7 +68,7 @@ class CopiaEjemploCuentaIncrementos {
         System.out.println("tope:      " + tope);
 
         MiHebra2 v[] = new MiHebra2[numHebras];
-        CopiaCuentaIncrementos c = new CopiaCuentaIncrementos();
+        AtomicCuentaIncrementos c = new AtomicCuentaIncrementos();
         t1 = System.nanoTime();
         System.out.println("Creando y arrancando " + numHebras + " hebras.");
         for (int i = 0; i < numHebras; i++) {
