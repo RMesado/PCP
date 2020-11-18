@@ -1,10 +1,11 @@
 package Practica4;
 
-import java.awt.*;
-import java.awt.event.*;
-import java.lang.reflect.InvocationTargetException;
 import javax.swing.*;
-import javax.swing.event.*;
+import javax.swing.event.ChangeEvent;
+import javax.swing.event.ChangeListener;
+import java.awt.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 
 import static Practica4.GUISecuenciaPrimos1a.esPrimo;
 
@@ -17,7 +18,7 @@ public class GUISecuenciaPrimos1a {
     JButton btnComienzaSecuencia, btnCancelaSecuencia;
     JSlider sldEspera;
     HebraCalculadora1c t; // Ejercicio 2.2
-//  ZonaIntercambio1c   z; // Ejercicio 2.3
+    ZonaIntercambio1c z; // Ejercicio 2.3
 
     // -------------------------------------------------------------------------
     public static void main(String args[]) {
@@ -30,10 +31,28 @@ public class GUISecuenciaPrimos1a {
     }
 
     // -------------------------------------------------------------------------
+    static boolean esPrimo(long num) {
+        boolean primo;
+        if (num < 2) {
+            primo = false;
+        } else {
+            primo = true;
+            long i = 2;
+            while ((i < num) && (primo)) {
+                primo = (num % i != 0);
+                i++;
+            }
+        }
+        return (primo);
+    }
+
+    // -------------------------------------------------------------------------
     public void go() {
         // Constantes.
         final int valorMaximo = 1000;
         final int valorMedio = 500;
+        // Variable ZonaIntercambio
+        z = new ZonaIntercambio1c(valorMedio);
 
         // Variables.
         JPanel tempPanel;
@@ -80,7 +99,7 @@ public class GUISecuenciaPrimos1a {
             public void actionPerformed(ActionEvent e) {
                 btnComienzaSecuencia.setEnabled(false);
                 btnCancelaSecuencia.setEnabled(true);
-                t = new HebraCalculadora1c(false, txfMensajes);
+                t = new HebraCalculadora1c(false, txfMensajes, z);
                 t.start();
 
             }
@@ -102,7 +121,7 @@ public class GUISecuenciaPrimos1a {
                 if (!sl.getValueIsAdjusting()) {
                     long tiempoMilisegundos = (long) sl.getValue();
                     System.out.println("JSlider value = " + tiempoMilisegundos);
-                    // ...
+                    z.setTiempo(tiempoMilisegundos);
                 }
             }
         });
@@ -115,35 +134,21 @@ public class GUISecuenciaPrimos1a {
 
         System.out.println("% End of routine: go.\n");
     }
-
-    // -------------------------------------------------------------------------
-    static boolean esPrimo(long num) {
-        boolean primo;
-        if (num < 2) {
-            primo = false;
-        } else {
-            primo = true;
-            long i = 2;
-            while ((i < num) && (primo)) {
-                primo = (num % i != 0);
-                i++;
-            }
-        }
-        return (primo);
-    }
 }
 
 //-------------------------------------------------------------------------------
 class HebraCalculadora1c extends Thread {
     boolean fin;
     JTextField txfMensajes;
+    ZonaIntercambio1c z;
 
-    HebraCalculadora1c(boolean fin, JTextField txfMensajes) {
+    HebraCalculadora1c(boolean fin, JTextField txfMensajes, ZonaIntercambio1c z) {
         this.fin = fin;
         this.txfMensajes = txfMensajes;
+        this.z = z;
     }
 
-    public void setFin(boolean fin) {
+    synchronized public void setFin(boolean fin) {
         this.fin = fin;
     }
 
@@ -153,17 +158,35 @@ class HebraCalculadora1c extends Thread {
             if (esPrimo(i)) {
                 long finalI = i;
                 try {
-                    SwingUtilities.invokeAndWait(new Runnable() {
-                        public void run() {
-                            txfMensajes.setText(String.valueOf(finalI));
-                        }
-                    });
-                } catch (InterruptedException | InvocationTargetException e) {
+                    sleep(z.getTiempo());
+                } catch (InterruptedException e) {
                     e.printStackTrace();
                 }
+                SwingUtilities.invokeLater(new Runnable() {
+                    public void run() {
+                        txfMensajes.setText(String.valueOf(finalI));
+                    }
+                });
             }
             i++;
         }
+    }
+}
+
+//------------------------------------------------------------------------------
+class ZonaIntercambio1c {
+    long tiempo;
+
+    ZonaIntercambio1c(long tiempo) {
+        this.tiempo = tiempo;
+    }
+
+    synchronized public long getTiempo() {
+        return this.tiempo;
+    }
+
+    synchronized public void setTiempo(long tiempo) {
+        this.tiempo = tiempo;
     }
 }
 

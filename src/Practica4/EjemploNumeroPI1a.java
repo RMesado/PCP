@@ -1,7 +1,5 @@
 package Practica4;
 
-import Practica3.EjemploMuestraPrimosEnVector2a;
-
 import java.util.concurrent.atomic.DoubleAdder;
 import java.util.concurrent.atomic.LongAdder;
 
@@ -291,6 +289,11 @@ class EjemploNumeroPI1a {
         // Calculo del numero PI de forma paralela:
         // Una acumulacion por hebra (Atomica).
 
+        System.out.println();
+        System.out.print("Comienzo del calculo paralelo: ");
+        System.out.println("Una acumulacion por hebra (At).");
+        t1 = System.nanoTime();
+
         b = new DoubleAdder();
         MiHebraUnaAcumulacionAtomica1d[] vectorAtomicUnaAcum = new MiHebraUnaAcumulacionAtomica1d[numHebras];
 
@@ -308,11 +311,6 @@ class EjemploNumeroPI1a {
         }
         pi = baseRectangulo * b.doubleValue();
 
-        System.out.println();
-        System.out.print("Comienzo del calculo paralelo: ");
-        System.out.println("Una acumulacion por hebra (At).");
-        t1 = System.nanoTime();
-        // ...
         t2 = System.nanoTime();
         tPar = ((double) (t2 - t1)) / 1.0e9;
         System.out.println("Calculo del numero PI:   " + pi);
