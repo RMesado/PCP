@@ -1,11 +1,11 @@
 package Practica5;
 
-
-import java.awt.*;
-import java.awt.event.*;
 import javax.swing.*;
-import java.lang.*;
-import java.util.*;
+import java.awt.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.util.ArrayList;
+import java.util.concurrent.LinkedBlockingQueue;
 
 // ============================================================================
 public class GUITiroAlBlanco1a {
@@ -23,8 +23,8 @@ public class GUITiroAlBlanco1a {
     JTextField txfVelocidadInicial;
     JTextField txfAnguloInicial;
     JButton btnDispara;
-//  LinkedBlockingQueue<NuevoDisparo1a> z;
-    MiHebraCalculadoraUnDisparo         t;
+    LinkedBlockingQueue<NuevoDisparo1a> zI;
+    MiHebraCalculadoraUnDisparo t;
 
     // --------------------------------------------------------------------------
     public static void main(String args[]) {
@@ -76,23 +76,24 @@ public class GUITiroAlBlanco1a {
                 // Anyade un codigo para procesar el evento del boton "Dispara".
                 btnDispara.addActionListener(new ActionListener() {
                     public void actionPerformed(ActionEvent e) {
+                        NuevoDisparo1a nuevoDisparo;
                         String mensaje;
                         try {
                             double velocidad = Double.parseDouble(
                                     txfVelocidadInicial.getText().trim()) / 100.0;
                             double angulo = Double.parseDouble(
                                     txfAnguloInicial.getText().trim());
+
                             if ((0.0 < angulo) && (angulo < 90) && (velocidad > 0)) {
                                 txfMensajes.setText("Calculando y dibujando nueva trayectoria");
 
-                                // Dibuja el proyectil.
-                                Proyectil1a p = new Proyectil1a(velocidad, angulo);
-
-                                // Codigo para que la hebra calcule cosas
-                                t = new MiHebraCalculadoraUnDisparo(cnvCampoTiro, txfMensajes, p);
-                                t.start();
-
-
+                                //La hebra hace su trabajo
+                                nuevoDisparo = new NuevoDisparo1a(velocidad, angulo);
+                                try {
+                                    zI.put(nuevoDisparo);
+                                } catch (InterruptedException interruptedException) {
+                                    interruptedException.printStackTrace();
+                                }
                                 // while ( p.getEstadoProyectil() == 0 )
 
                             } else {
@@ -111,6 +112,10 @@ public class GUITiroAlBlanco1a {
                 container.pack();
                 container.setResizable(false);
                 container.setVisible(true);
+                // Creacion de la Hebra
+                zI = new LinkedBlockingQueue<>();
+                t = new MiHebraCalculadoraUnDisparo(cnvCampoTiro, txfMensajes, zI);
+                t.start();
             }
         });
     }
@@ -244,6 +249,15 @@ class Proyectil1a {
     }
 
     // --------------------------------------------------------------------------
+    static void duermeUnPoco() {
+        try {
+            Thread.sleep(1L);
+        } catch (InterruptedException ex) {
+            ex.printStackTrace();
+        }
+    }
+
+    // --------------------------------------------------------------------------
     void mueveDuranteUnIncremental(int objetivoX, int objetivoY) {
         // Mueve el proyectil solo si no ha impactado.
         // Actualiza su estado considerando que el objetivo esta en los parametros.
@@ -283,12 +297,22 @@ class Proyectil1a {
         // posicion es distinta de la anterior.
         if ((this.intPosX != this.intPosXOld) ||
                 (this.intPosY != this.intPosYOld)) {
+            SwingUtilities.invokeLater(new Runnable() {
+                private final int intPosXOld = Proyectil1a.this.intPosXOld;
+                private final int intPosYOld = Proyectil1a.this.intPosYOld;
+                private final int intPosX = Proyectil1a.this.intPosX;
+                private final int intPosY = Proyectil1a.this.intPosY;
 
-            // Borra la posicion anterior.
-            cnvCampoTiro.borraProyectil(this.intPosXOld, this.intPosYOld);
+                @Override
+                public void run() {
+                    // Borra la posicion anterior.
+                    cnvCampoTiro.borraProyectil(this.intPosXOld, this.intPosYOld);
 
-            // Dibuja la nueva posicion del proyectil.
-            cnvCampoTiro.dibujaProyectil(this.intPosX, this.intPosY);
+                    // Dibuja la nueva posicion del proyectil.
+                    cnvCampoTiro.dibujaProyectil(this.intPosX, this.intPosY);
+                }
+            });
+
         }
     }
 
@@ -330,67 +354,91 @@ class Proyectil1a {
     int getIntPosYOld() {
         return intPosYOld;
     }
-
-    // --------------------------------------------------------------------------
-    static void duermeUnPoco() {
-        try {
-            Thread.sleep(1L);
-        } catch (InterruptedException ex) {
-            ex.printStackTrace();
-        }
-    }
 }
 
-//--------------------------------------------------------------------
 class MiHebraCalculadoraUnDisparo extends Thread {
     final CanvasCampoTiro1a cnvCampoTiro;
     final JTextField txfMensajes;
-    final Proyectil1a p;
+    LinkedBlockingQueue<NuevoDisparo1a> z;
+    ArrayList<Proyectil1a> lP;
     String mensaje;
+    NuevoDisparo1a nuevoDisparo1a;
+    Proyectil1a p;
 
 
     public MiHebraCalculadoraUnDisparo(CanvasCampoTiro1a cnvCampoTiro,
-                              JTextField txfMensajes, Proyectil1a p) {
+                                       JTextField txfMensajes, LinkedBlockingQueue<NuevoDisparo1a> z) {
         this.cnvCampoTiro = cnvCampoTiro;
         this.txfMensajes = txfMensajes;
-        this.p = p;
+        this.z = z;
     }
 
     public void run() {
-        while (p.getEstadoProyectil() == 0) {
-
-            // Muestra en pantalla los datos del proyectil p.
-            p.muestra();
-
-            // Mueve el proyectil durante un incremental de tiempo.
-            p.mueveDuranteUnIncremental(cnvCampoTiro.getObjetivoX(),
-                    cnvCampoTiro.getObjetivoY());
-
-            // Dibuja el proyectil.
-            SwingUtilities.invokeLater(new Runnable() {
-                public void run() {
-                    p.dibujaProyectil(cnvCampoTiro);
+        lP = new ArrayList<>();
+        while (true) {
+            while (lP.isEmpty() || !z.isEmpty()) {
+                try {
+                    nuevoDisparo1a = z.take();
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
                 }
-            });
-            // Comprueba si el proyectil ha impactado contra el suelo o no.
-            if (p.getEstadoProyectil() != 0) {
-                // El proyectil ha impactado contra el suelo.
-                // Construye y muestra mensaje adecuado.
-                if (p.getEstadoProyectil() == 2) {
-                    mensaje = "Destruido!";
-                } else {
-                    mensaje = "Fallado. El objetivo esta en: " +
-                            cnvCampoTiro.getObjetivoX() +
-                            "  Has disparado a: " + p.getIntPosX();
-                }
-                SwingUtilities.invokeLater(new Runnable() {
-                    public void run() {
-                        txfMensajes.setText(mensaje);
+                p = new Proyectil1a(nuevoDisparo1a.getVelocidadInicial(), nuevoDisparo1a.getAnguloInicial());
+                lP.add(p);
+            }
+            for (Proyectil1a disparo : new ArrayList<>(lP)) {
+                // Muestra en pantalla los datos del proyectil p.
+                disparo.muestra();
+
+                // Mueve el proyectil durante un incremental de tiempo.
+                disparo.mueveDuranteUnIncremental(cnvCampoTiro.getObjetivoX(),
+                        cnvCampoTiro.getObjetivoY());
+
+                // Dibuja el proyectil.
+                disparo.dibujaProyectil(cnvCampoTiro);
+
+                // Comprueba si el proyectil ha impactado contra el suelo o no.
+                if (disparo.getEstadoProyectil() != 0) {
+                    // El proyectil ha impactado contra el suelo.
+                    // Construye y muestra mensaje adecuado.
+                    if (disparo.getEstadoProyectil() == 2) {
+                        mensaje = "Destruido!";
+                    } else {
+                        mensaje = "Fallado. El objetivo esta en: " +
+                                cnvCampoTiro.getObjetivoX() +
+                                "  Has disparado a: " + disparo.getIntPosX();
                     }
-                });
+                    SwingUtilities.invokeLater(new Runnable() {
+                        public void run() {
+                            txfMensajes.setText(mensaje);
+                        }
+                    });
+                    // Se elimina el proyectil de la lista
+                    lP.remove(disparo);
+                }
             }
         }
-
     }
 }
+
+// ============================================================================
+class NuevoDisparo1a {
+    // ============================================================================
+    final double velocidadInicial, anguloInicial;
+
+    //==============================================================================
+    public NuevoDisparo1a(double velocidadInicial, double anguloInicial) {
+        this.velocidadInicial = velocidadInicial;
+        this.anguloInicial = anguloInicial;
+
+    }
+
+    public double getVelocidadInicial() {
+        return velocidadInicial;
+    }
+
+    public double getAnguloInicial() {
+        return anguloInicial;
+    }
+}
+
 
