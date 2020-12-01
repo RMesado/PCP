@@ -1,92 +1,117 @@
-import java.util.ArrayList;
-import java.util.concurrent.*;
-import java.util.concurrent.atomic.AtomicInteger;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Hashtable;
+import java.util.concurrent.ConcurrentHashMap;
 
-public class pruebas {
-    static int cuentaNumMaxMayusculasEnUnaLinea_ThreadPool(String[] vectorTiras, int numHebras) {
-        AtomicInteger numMaxEnUnaLinea = new AtomicInteger();
-        ExecutorService exec = Executors.newFixedThreadPool(numHebras);
-
-        class Tarea implements Runnable {
-            final private AtomicInteger numMaxEnUnaLinea;
-            final private String tiraAProcesar;
-            private final AtomicInteger numEnLineaActual = new AtomicInteger();
-
-            Tarea(AtomicInteger numMaxEnUnaLinea, String tiraAProcesar) {
-                this.numMaxEnUnaLinea = numMaxEnUnaLinea;
-                this.tiraAProcesar = tiraAProcesar;
-            }
-
-            public void run() {
-                numEnLineaActual.set(cuentaMayusculas(tiraAProcesar));
-                if (numEnLineaActual.get() > numMaxEnUnaLinea.get())
-                    numMaxEnUnaLinea.set(numEnLineaActual.get());
-            }
-        }
-        numMaxEnUnaLinea.set(cuentaMayusculas(vectorTiras[0]));
-        for (int i = 1; i < vectorTiras.length; i++)
-            exec.execute((new Tarea(numMaxEnUnaLinea, vectorTiras[i])));
-
-        exec.shutdown();
-        try {
-            while (!exec.awaitTermination(2L, TimeUnit.MILLISECONDS)) {
-            }
-        } catch (InterruptedException ex) {
-            ex.printStackTrace();
-        }
-
-        return numMaxEnUnaLinea.get();
-    }
-
-    static int cuentaNumMaxMayusculasEnUnaLinea_ThreadPool_Callable(String[] vectorTiras, int numHebras) {
-        int numMaxEnUnaLinea = 0;
-        int numEnLineaActual = 0;
-        Future<Integer> f;
-        ExecutorService exec = Executors.newFixedThreadPool(numHebras);
-        ArrayList<Future<Integer>> alf = new ArrayList<Future<Integer>>();
-
-        class Tarea implements Callable {
-            final private String tiraAProcesar;
-
-            Tarea(String tiraAProcesar) {
-                this.tiraAProcesar = tiraAProcesar;
-            }
-
-            public Integer call() {
-                return cuentaMayusculas(tiraAProcesar);
-            }
-        }
-        for (int i = 0; i < vectorTiras.length; i++) {
-            f = exec.submit(new Tarea(vectorTiras[i]));
-            alf.add(f);
-        }
-
-        exec.shutdown();
-        for (int i = 0; i < alf.size(); i++) {
-            try {
-                f = alf.get(i);
-                numEnLineaActual = f.get();
-                if (numEnLineaActual > numMaxEnUnaLinea) numMaxEnUnaLinea = numEnLineaActual;
-            } catch (InterruptedException | ExecutionException ex) {
-                ex.printStackTrace();
-            }
-        }
-        return numMaxEnUnaLinea;
-    }
-
-    static public int cuentaMayusculas(String s) {
-        int numMayusculas = 0;
-        for (int i = 0; i < s.length(); i++) {
-            if (Character.isUpperCase(s.charAt(i))) {
-                numMayusculas++;
-            }
-        }
-        return numMayusculas;
-    }
-
+class pruebas {
     public static void main(String[] args) {
-        String[] vector = {"Hola", "Adios", "Muy Buenas", "HOSTIA", "JeSUSSSS"};
-        System.out.println(cuentaNumMaxMayusculasEnUnaLinea_ThreadPool(vector, 4));
+        Ht2 articulos;
+        Hashtable<String, Integer> m1 = new Hashtable<>();
+        int a = 20;
+        m1.put(" abc ", 10);
+        System.out.println(m1);
+        m1.merge(" abc ", a, Integer::max);
+        System.out.println(m1);
+        m1.merge(" abc ", 5, Integer::max);
+        System.out.println(m1);
+        m1.merge(" def ", 5, Integer::sum);
+        System.out.println(m1);
+        System.out.println("/----------------------------------");
+        Ht2 m2 = new Ht2();
+        a = 20;
+        m2.contabilizaVenta(" abc ", 10);
+        System.out.println(m2);
+        m2.contabilizaVenta(" abc ", a);
+        System.out.println(m2);
+        m2.contabilizaVenta(" abc ", 5);
+        System.out.println(m2);
+        m2.contabilizaVenta(" def ", 5);
+        System.out.println(m2);
+        System.out.println("/----------------------------------");
+        hash1 m3 = new hash1();
 
+        m3.encontradaNuevaPalabra(" abc ");
+        System.out.println(m3);
+        m3.encontradaNuevaPalabra(" abc ");
+        System.out.println(m3);
+        m3.encontradaNuevaPalabra(" nbv ");
+        System.out.println(m3);
+        m3.encontradaNuevaPalabra(" abc ");
+        System.out.println(m3);
+
+
+    }
+
+    static class Ht2 extends Hashtable<String, Integer> {
+
+        synchronized void contabilizaVenta(String codArticulo, int importe) {
+            Integer importeActual = this.get(codArticulo);
+            if (importeActual != null) {
+                if (importeActual < importe)
+                    this.replace(codArticulo, importe);
+            } else {
+                this.put(codArticulo, importe);
+            }
+        }
+
+    }
+
+    static class Chm3 extends ConcurrentHashMap<String, Integer> {
+        synchronized void contabilizaVenta(String codArticulo, int importe) {
+            this.merge(codArticulo, importe, Integer::max);
+        }
+    }
+
+    static class Chm2 extends ConcurrentHashMap<String, Integer> {
+        synchronized void contabilizaVenta(String codArticulo, int importe) {
+            Integer importeActual;
+            boolean modif = false;
+            importeActual = putIfAbsent(codArticulo, importe);
+            if (importeActual != null) {
+                do {
+                    importeActual = this.get(codArticulo);
+                    if (importeActual < importe) {
+                        modif = this.replace(codArticulo, importeActual, importe);
+                    }
+
+                } while (!modif);
+            }
+        }
+    }
+
+    static class hash1 extends Hashtable<String, Boolean> {
+
+        synchronized void encontradaNuevaPalabra(String palabra) {
+            Boolean valorActual = this.get(palabra);
+            if (valorActual != null) {
+                this.replace(palabra, !valorActual);
+            } else {
+                this.put(palabra, true);
+            }
+        }
+
+    }
+
+    static class hash2 extends ConcurrentHashMap<String, Boolean> {
+
+        synchronized void encontradaNuevaPalabra(String palabra) {
+            Boolean valorActual;
+            boolean modif;
+            valorActual = putIfAbsent(palabra, true);
+            if (valorActual != null) {
+                do {
+                    valorActual = this.get(palabra);
+                    modif = this.replace(palabra, valorActual, !valorActual);
+
+                } while (!modif);
+            }
+        }
+    }
+
+
+    static class hash3 extends ConcurrentHashMap<String, Boolean> {
+        void encontradaNuevaPalabra(String palabra) {
+            this.compute(palabra, (k,oldValue)-> oldValue == null || !oldValue);
+        }
     }
 }
