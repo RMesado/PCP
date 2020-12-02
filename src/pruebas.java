@@ -1,117 +1,146 @@
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Hashtable;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.*;
 
 class pruebas {
-    public static void main(String[] args) {
-        Ht2 articulos;
-        Hashtable<String, Integer> m1 = new Hashtable<>();
-        int a = 20;
-        m1.put(" abc ", 10);
-        System.out.println(m1);
-        m1.merge(" abc ", a, Integer::max);
-        System.out.println(m1);
-        m1.merge(" abc ", 5, Integer::max);
-        System.out.println(m1);
-        m1.merge(" def ", 5, Integer::sum);
-        System.out.println(m1);
-        System.out.println("/----------------------------------");
-        Ht2 m2 = new Ht2();
-        a = 20;
-        m2.contabilizaVenta(" abc ", 10);
-        System.out.println(m2);
-        m2.contabilizaVenta(" abc ", a);
-        System.out.println(m2);
-        m2.contabilizaVenta(" abc ", 5);
-        System.out.println(m2);
-        m2.contabilizaVenta(" def ", 5);
-        System.out.println(m2);
-        System.out.println("/----------------------------------");
-        hash1 m3 = new hash1();
+    public static class EjemploColas1a extends Thread {
+        int miId;
+        String hola;
+        SynchronousQueue<String> cola = new SynchronousQueue<>();
 
-        m3.encontradaNuevaPalabra(" abc ");
-        System.out.println(m3);
-        m3.encontradaNuevaPalabra(" abc ");
-        System.out.println(m3);
-        m3.encontradaNuevaPalabra(" nbv ");
-        System.out.println(m3);
-        m3.encontradaNuevaPalabra(" abc ");
-        System.out.println(m3);
+        EjemploColas1a(int miId) {
+            this.miId = miId;
+        }
 
-
-    }
-
-    static class Ht2 extends Hashtable<String, Integer> {
-
-        synchronized void contabilizaVenta(String codArticulo, int importe) {
-            Integer importeActual = this.get(codArticulo);
-            if (importeActual != null) {
-                if (importeActual < importe)
-                    this.replace(codArticulo, importe);
-            } else {
-                this.put(codArticulo, importe);
+        public void run() {
+            if (miId == 0) {
+                metodo0();
+                try {
+                    cola.put("hola");
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            } else if (miId == 1) {
+                try {
+                    hola = cola.take();
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+                metodo1();
             }
         }
-
+        // Resto de código .
     }
 
-    static class Chm3 extends ConcurrentHashMap<String, Integer> {
-        synchronized void contabilizaVenta(String codArticulo, int importe) {
-            this.merge(codArticulo, importe, Integer::max);
+    public static void metodo0() {
+        for (int i = 0; i < 15; i++)
+            System.out.println(i);
+    }
+
+    public static void metodo1() {
+        for (int i = 15; i < 30; i++)
+            System.out.println(i);
+    }
+
+    // ===== ===== ===== ===== ===== ===== ===== ===== ===== ===== ===== ===== ===
+    class MiHebra3b extends Thread {
+        // ===== ===== ===== ===== ===== ===== ===== ===== ===== ===== ===== ===== ===
+        int miId, numHebras;
+        CyclicBarrier barrera;
+
+        // ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- -
+        MiHebra3b(int miId, int numHebras, CyclicBarrier barrera) {
+            this.miId = miId;
+            this.numHebras = numHebras;
+            this.barrera = barrera;
+        }
+
+        // ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- -
+        public void run() {
+            // ...
+            System.out.println(" Hebra : " + miId + " Antes ");
+            try {
+                barrera.await();
+            } catch (InterruptedException | BrokenBarrierException e) {
+                e.printStackTrace();
+            }
+            System.out.println(" Hebra : " + miId + " Despues ");
+            // ...
         }
     }
 
-    static class Chm2 extends ConcurrentHashMap<String, Integer> {
-        synchronized void contabilizaVenta(String codArticulo, int importe) {
-            Integer importeActual;
-            boolean modif = false;
-            importeActual = putIfAbsent(codArticulo, importe);
-            if (importeActual != null) {
-                do {
-                    importeActual = this.get(codArticulo);
-                    if (importeActual < importe) {
-                        modif = this.replace(codArticulo, importeActual, importe);
-                    }
+    // ===== ===== ===== ===== ===== ===== ===== ===== ===== ===== ===== ===== ===
+    static class Coordinacion3b {
+        // ===== ===== ===== ===== ===== ===== ===== ===== ===== ===== ===== ===== ===
+        int numHebras, numHebrasQueHanLlegado;
 
-                } while (!modif);
+        // ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- -
+        Coordinacion3b(int numHebras) {
+            this.numHebras = numHebras;
+            numHebrasQueHanLlegado = 0
+        }
+
+        // ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- -
+        public void esperaTurno() {
+            if (numHebras != numHebrasQueHanLlegado) {
+                numHebrasQueHanLlegado += 1;
+                try {
+                    wait();
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            } else notifyAll();
+        }
+    }
+
+    static class Tarea {
+        boolean estaEnvenenada;
+        String linea;
+
+        public Tarea(boolean estaEnvenenada, String linea) {
+            this.estaEnvenenada = estaEnvenenada;
+            this.linea = linea;
+        }
+    }
+
+
+    class hebraContadora extends Thread {
+        ArrayBlockingQueue<Tarea> cola;
+        boolean estaEnvenenada;
+
+        public hebraContadora(ArrayBlockingQueue<Tarea> cola) {
+            this.cola = cola;
+            estaEnvenenada = false;
+        }
+
+        public void run() {
+            Tarea tarea = null;
+            while (!estaEnvenenada) {
+                try {
+                    tarea = cola.take();
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+                if (tarea != null) {
+                    if (tarea.estaEnvenenada) {
+                        //procesaLinea(tarea.linea);
+                    } else this.estaEnvenenada = tarea.estaEnvenenada;
+                }
             }
         }
     }
 
-    static class hash1 extends Hashtable<String, Boolean> {
-
-        synchronized void encontradaNuevaPalabra(String palabra) {
-            Boolean valorActual = this.get(palabra);
-            if (valorActual != null) {
-                this.replace(palabra, !valorActual);
-            } else {
-                this.put(palabra, true);
-            }
-        }
+    public static void main(String[] args) throws InterruptedException {
+        EjemploColas1a hebra1 = new EjemploColas1a(1);
+        EjemploColas1a hebra2 = new EjemploColas1a(0);
+        hebra1.start();
+        hebra2.start();
+        hebra1.join();
+        hebra2.join();
+        ArrayBlockingQueue<Long> cola = new ArrayBlockingQueue<>(5);
 
     }
 
-    static class hash2 extends ConcurrentHashMap<String, Boolean> {
 
-        synchronized void encontradaNuevaPalabra(String palabra) {
-            Boolean valorActual;
-            boolean modif;
-            valorActual = putIfAbsent(palabra, true);
-            if (valorActual != null) {
-                do {
-                    valorActual = this.get(palabra);
-                    modif = this.replace(palabra, valorActual, !valorActual);
-
-                } while (!modif);
-            }
-        }
-    }
-
-
-    static class hash3 extends ConcurrentHashMap<String, Boolean> {
-        void encontradaNuevaPalabra(String palabra) {
-            this.compute(palabra, (k,oldValue)-> oldValue == null || !oldValue);
-        }
-    }
 }
