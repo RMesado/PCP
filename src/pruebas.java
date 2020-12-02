@@ -78,7 +78,7 @@ class pruebas {
         // ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- -
         Coordinacion3b(int numHebras) {
             this.numHebras = numHebras;
-            numHebrasQueHanLlegado = 0
+            numHebrasQueHanLlegado = 0;
         }
 
         // ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- -
