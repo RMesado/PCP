@@ -1,11 +1,16 @@
 package Practica6;
 
-import java.io.*;
+import java.io.BufferedReader;
+import java.io.FileNotFoundException;
+import java.io.FileReader;
+import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.DoubleAdder;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static Practica6.EjemploPalabraMasUsada1a.*;
+import static java.util.stream.Collectors.counting;
+import static java.util.stream.Collectors.groupingBy;
 
 // ============================================================================
 class EjemploPalabraMasUsada1a {
@@ -14,7 +19,7 @@ class EjemploPalabraMasUsada1a {
     // -------------------------------------------------------------------------
     public static void main(String args[]) {
         long t1, t2;
-        double tsec, thm, tht, tchm, tchm2;
+        double tsec, tp;
         int numHebras;
         String nombreFichero, palabraActual;
         ArrayList<String> arrayLineas;
@@ -100,10 +105,10 @@ class EjemploPalabraMasUsada1a {
             }
         }
         t2 = System.nanoTime();
-        thm = ((double) (t2 - t1)) / 1.0e9;
+        tp = ((double) (t2 - t1)) / 1.0e9;
         System.out.print("Implemen. paralela 1: ");
         imprimePalabraMasUsadaYVeces(maCuentaPalabras);
-        System.out.println(" Tiempo(s): " + thm + " , Incremento " + tsec / thm);
+        System.out.println(" Tiempo(s): " + tp + " , Incremento " + tsec / tp);
         System.out.println("Num. elems. tabla hash: " + maCuentaPalabras.size());
         System.out.println();
 
@@ -125,10 +130,10 @@ class EjemploPalabraMasUsada1a {
             }
         }
         t2 = System.nanoTime();
-        tht = ((double) (t2 - t1)) / 1.0e9;
+        tp = ((double) (t2 - t1)) / 1.0e9;
         System.out.print("Implemen. paralela 2: ");
         imprimePalabraMasUsadaYVeces(htCuentaPalabras);
-        System.out.println(" Tiempo(s): " + tht + " , Incremento " + tsec / tht);
+        System.out.println(" Tiempo(s): " + tp + " , Incremento " + tsec / tp);
         System.out.println("Num. elems. tabla hash: " + htCuentaPalabras.size());
         System.out.println();
 
@@ -149,10 +154,10 @@ class EjemploPalabraMasUsada1a {
             }
         }
         t2 = System.nanoTime();
-        tchm = ((double) (t2 - t1)) / 1.0e9;
+        tp = ((double) (t2 - t1)) / 1.0e9;
         System.out.print("Implemen. paralela 3: ");
         imprimePalabraMasUsadaYVeces(chmCuentaPalabras);
-        System.out.println(" Tiempo(s): " + tchm + " , Incremento " + tsec / tchm);
+        System.out.println(" Tiempo(s): " + tp + " , Incremento " + tsec / tp);
         System.out.println("Num. elems. tabla hash: " + chmCuentaPalabras.size());
         System.out.println();
 
@@ -173,24 +178,76 @@ class EjemploPalabraMasUsada1a {
             }
         }
         t2 = System.nanoTime();
-        tchm2 = ((double) (t2 - t1)) / 1.0e9;
-        System.out.print("Implemen. paralela 3: ");
+        tp = ((double) (t2 - t1)) / 1.0e9;
+        System.out.print("Implemen. paralela 4: ");
         imprimePalabraMasUsadaYVeces(chm2CuentaPalabras);
-        System.out.println(" Tiempo(s): " + tchm2 + " , Incremento " + tsec / tchm2);
+        System.out.println(" Tiempo(s): " + tp + " , Incremento " + tsec / tp);
         System.out.println("Num. elems. tabla hash: " + chm2CuentaPalabras.size());
         System.out.println();
 
         // Implementacion paralela 5: Uso de ConcurrentHashMap
-        // ...
-        //
-        //
+        t1 = System.nanoTime();
+        ConcurrentHashMap<String, AtomicInteger> chmAICuentaPalabras = new ConcurrentHashMap<String, AtomicInteger>(1000, 0.75F);
+        MiHebra_5[] vectorMiHebra_5 = new MiHebra_5[numHebras];
+        for (int i = 0; i < numHebras; i++) {
+            vectorMiHebra_5[i] = new MiHebra_5(i, numHebras, arrayLineas, chmAICuentaPalabras);
+            vectorMiHebra_5[i].start();
+        }
+        for (int i = 0; i < numHebras; i++) {
+            try {
+                vectorMiHebra_5[i].join();
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
+        t2 = System.nanoTime();
+        tp = ((double) (t2 - t1)) / 1.0e9;
+        System.out.print("Implemen. paralela 5: ");
+        imprimePalabraMasUsadaYVecesAT(chmAICuentaPalabras);
+        System.out.println(" Tiempo(s): " + tp + " , Incremento " + tsec / tp);
+        System.out.println("Num. elems. tabla hash: " + chmAICuentaPalabras.size());
+        System.out.println();
         // Implementacion paralela 6: Uso de ConcurrentHashMap
-        // ...
-        //
-        //
+
+        t1 = System.nanoTime();
+        ConcurrentHashMap<String, AtomicInteger> chmAI2CuentaPalabras = new ConcurrentHashMap<String, AtomicInteger>(1000, 0.75F, 256);
+        MiHebra_6[] vectorMiHebra_6 = new MiHebra_6[numHebras];
+        for (int i = 0; i < numHebras; i++) {
+            vectorMiHebra_6[i] = new MiHebra_6(i, numHebras, arrayLineas, chmAI2CuentaPalabras);
+            vectorMiHebra_6[i].start();
+        }
+        for (int i = 0; i < numHebras; i++) {
+            try {
+                vectorMiHebra_6[i].join();
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
+        t2 = System.nanoTime();
+        tp = ((double) (t2 - t1)) / 1.0e9;
+        System.out.print("Implemen. paralela 6: ");
+        imprimePalabraMasUsadaYVecesAT(chmAI2CuentaPalabras);
+        System.out.println(" Tiempo(s): " + tp + " , Incremento " + tsec / tp);
+        System.out.println("Num. elems. tabla hash: " + chmAI2CuentaPalabras.size());
+        System.out.println();
+
         // Implementacion paralela 7: Uso de Streams
-        // ...
-        //
+
+        t1 = System.nanoTime();
+        Map<String, Long> stCuentaPalabras = arrayLineas.parallelStream()
+                .filter(s -> s != null)
+                .map(s -> s.split("\\W+"))
+                .flatMap(Arrays::stream).map(String::trim)
+                .filter(s -> (s.length() > 0))
+                .collect(groupingBy(s -> s, counting()));
+
+        t2 = System.nanoTime();
+        tp = ((double) (t2 - t1)) / 1.0e9;
+        System.out.print("Implemen. paralela 7: ");
+        imprimePalabraMasUsadaYVecesStream(stCuentaPalabras);
+        System.out.println(" Tiempo(s): " + tp + " , Incremento " + tsec / tp);
+        System.out.println("Num. elems. tabla hash: " + stCuentaPalabras.size());
+        System.out.println();
 
         System.out.println("Fin de programa.");
     }
@@ -277,6 +334,18 @@ class EjemploPalabraMasUsada1a {
         }
     }
 
+    // -------------------------------------------------------------------------
+    public static void contabilizaPalabraConcurrentHashMapAtomic(
+            ConcurrentHashMap<String, AtomicInteger> cuentaPalabras,
+            String palabra) {
+
+        AtomicInteger numVeces = cuentaPalabras.putIfAbsent(palabra, new AtomicInteger(1));
+        if (numVeces != null) {
+            numVeces.getAndIncrement();
+        }
+    }
+
+
     // --------------------------------------------------------------------------
     static void imprimePalabraMasUsadaYVeces(
             Map<String, Integer> cuentaPalabras) {
@@ -289,6 +358,57 @@ class EjemploPalabraMasUsada1a {
         for (int i = 0; i < lista.size(); i++) {
             String palabra = (String) lista.get(i).getKey();
             int numVeces = (Integer) lista.get(i).getValue();
+            if (i == 0) {
+                palabraMasUsada = palabra;
+                numVecesPalabraMasUsada = numVeces;
+            } else if (numVecesPalabraMasUsada < numVeces) {
+                palabraMasUsada = palabra;
+                numVecesPalabraMasUsada = numVeces;
+            }
+        }
+        // Imprime resultado.
+        System.out.print("( Palabra: '" + palabraMasUsada + "' " +
+                "veces: " + numVecesPalabraMasUsada + " )");
+    }
+
+    // --------------------------------------------------------------------------
+    static void imprimePalabraMasUsadaYVecesAT(
+            Map<String, AtomicInteger> cuentaPalabras) {
+        ArrayList<Map.Entry> lista =
+                new ArrayList<Map.Entry>(cuentaPalabras.entrySet());
+
+        String palabraMasUsada = "";
+        int numVecesPalabraMasUsada = 0;
+        // Calcula la palabra mas usada.
+        for (int i = 0; i < lista.size(); i++) {
+            String palabra = (String) lista.get(i).getKey();
+            AtomicInteger value = (AtomicInteger) lista.get(i).getValue();
+            Integer numVeces = value.get();
+            if (i == 0) {
+                palabraMasUsada = palabra;
+                numVecesPalabraMasUsada = numVeces;
+            } else if (numVecesPalabraMasUsada < numVeces) {
+                palabraMasUsada = palabra;
+                numVecesPalabraMasUsada = numVeces;
+            }
+        }
+        // Imprime resultado.
+        System.out.print("( Palabra: '" + palabraMasUsada + "' " +
+                "veces: " + numVecesPalabraMasUsada + " )");
+    }
+
+    // --------------------------------------------------------------------------
+    static void imprimePalabraMasUsadaYVecesStream(
+            Map<String, Long> cuentaPalabras) {
+        ArrayList<Map.Entry> lista =
+                new ArrayList<Map.Entry>(cuentaPalabras.entrySet());
+
+        String palabraMasUsada = "";
+        long numVecesPalabraMasUsada = 0;
+        // Calcula la palabra mas usada.
+        for (int i = 0; i < lista.size(); i++) {
+            String palabra = (String) lista.get(i).getKey();
+            long numVeces = (Long) lista.get(i).getValue();
             if (i == 0) {
                 palabraMasUsada = palabra;
                 numVecesPalabraMasUsada = numVeces;
@@ -450,3 +570,60 @@ class MiHebra_4 extends Thread {
     }
 }
 
+class MiHebra_5 extends Thread {
+    int numHebras;
+    int miId;
+    ConcurrentHashMap<String, AtomicInteger> chmAICuentaPalabras;
+    ArrayList<String> arrayLineas;
+
+    public MiHebra_5(int miId, int numhebras, ArrayList<String> arrayLineas, ConcurrentHashMap<String, AtomicInteger> chmAICuentaPalabras) {
+        this.miId = miId;
+        this.numHebras = numhebras;
+        this.arrayLineas = arrayLineas;
+        this.chmAICuentaPalabras = chmAICuentaPalabras;
+    }
+
+    public void run() {
+        String palabraActual;
+        for (int i = miId; i < arrayLineas.size(); i += numHebras) {
+            // Procesa la linea "i".
+            String[] palabras = arrayLineas.get(i).split("\\W+");
+            for (int j = 0; j < palabras.length; j++) {
+                // Procesa cada palabra de la linea "i", si es distinta de blancos.
+                palabraActual = palabras[j].trim();
+                if (palabraActual.length() > 0) {
+                    contabilizaPalabraConcurrentHashMapAtomic(chmAICuentaPalabras, palabraActual);
+                }
+            }
+        }
+    }
+}
+
+class MiHebra_6 extends Thread {
+    int numHebras;
+    int miId;
+    ConcurrentHashMap<String, AtomicInteger> chmAI2CuentaPalabras;
+    ArrayList<String> arrayLineas;
+
+    public MiHebra_6(int miId, int numhebras, ArrayList<String> arrayLineas, ConcurrentHashMap<String, AtomicInteger> chmAI2CuentaPalabras) {
+        this.miId = miId;
+        this.numHebras = numhebras;
+        this.arrayLineas = arrayLineas;
+        this.chmAI2CuentaPalabras = chmAI2CuentaPalabras;
+    }
+
+    public void run() {
+        String palabraActual;
+        for (int i = miId; i < arrayLineas.size(); i += numHebras) {
+            // Procesa la linea "i".
+            String[] palabras = arrayLineas.get(i).split("\\W+");
+            for (int j = 0; j < palabras.length; j++) {
+                // Procesa cada palabra de la linea "i", si es distinta de blancos.
+                palabraActual = palabras[j].trim();
+                if (palabraActual.length() > 0) {
+                    contabilizaPalabraConcurrentHashMapAtomic(chmAI2CuentaPalabras, palabraActual);
+                }
+            }
+        }
+    }
+}
