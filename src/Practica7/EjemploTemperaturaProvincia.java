@@ -117,8 +117,17 @@ class EjemploTemperaturaProvincia {
 
         //
         // Implementacion paralela: Thread Pool isTerminated.
-        //
-        // ...
+
+        System.out.println();
+        t1 = System.nanoTime();
+        MaxMin = new PuebloMaximaMinima();
+        obtenMayorDiferenciaDeFichero(nombreFichero, fecha, codProvincia, MaxMin, 2, numHebras);
+        t2 = System.nanoTime();
+        tp = ((double) (t2 - t1)) / 1.0e9;
+        System.out.print("Implementacion paralela: Thread Pool on isTerminated.     ");
+        System.out.println(" Tiempo(s): " + tp + " , Incremento: " + ts / tp);
+        System.out.println("  Pueblo: " + MaxMin.damePueblo() + " , Maxima = " + MaxMin.dameTemperaturaMaxima() +
+                " , Minima = " + MaxMin.dameTemperaturaMinima());
 
         //
         // Implementacion paralela: Thread Pool con awaitTermination.
@@ -193,7 +202,7 @@ class EjemploTemperaturaProvincia {
                     }
                     break;
                 case 1:  // Gestion Propia
-                    SynchronousQueue<TareaEnColaGestionPropia> listaTarea = new SynchronousQueue<>();
+                    LinkedBlockingDeque<TareaEnColaGestionPropia> listaTarea = new LinkedBlockingDeque<>();
                     hebraConsumidora[] vectorHebrasConsumidoras = new hebraConsumidora[numHebras];
                     for (int i = 0; i < numHebras; i++) {
                         vectorHebrasConsumidoras[i] = new hebraConsumidora(fecha, listaTarea, MaxMin);
@@ -211,7 +220,30 @@ class EjemploTemperaturaProvincia {
                     }
                     break;
                 case 2: // ThreadPools con isTerminated
-                    // ...
+                    //LinkedBlockingDeque<TareaEnColaGestionPropia> listaTarea2 = new LinkedBlockingDeque<>();
+                    ExecutorService executor = Executors.newFixedThreadPool(numHebras);
+                    class Tarea1 implements Runnable {
+                        final int codpueblo;
+
+                        Tarea1(int codpueblo) {
+                            this.codpueblo = codpueblo;
+                        }
+
+                        public void run() {
+                            ProcesaPueblo(fecha, codpueblo, MaxMin, false);
+                        }
+                    }
+                    while ((linea = br.readLine()) != null) {
+                        int codPueblo = Integer.parseInt(linea);
+                        executor.execute(new Tarea1(codPueblo));
+                    }
+                    executor.shutdown();
+                    try{
+                        while(!executor.isTerminated()){
+                        }
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
                     break;
                 case 3: // ThreadPools con awaitTermination
                     // ...
@@ -347,12 +379,12 @@ class PuebloMaximaMinima {
 
 class hebraConsumidora extends Thread {
     String fecha;
-    SynchronousQueue<TareaEnColaGestionPropia> listaTarea;
+    LinkedBlockingDeque<TareaEnColaGestionPropia> listaTarea;
     PuebloMaximaMinima maximaMinima;
     boolean fin;
 
 
-    public hebraConsumidora(String fecha, SynchronousQueue<TareaEnColaGestionPropia> listaTarea, PuebloMaximaMinima maximaMinima) {
+    public hebraConsumidora(String fecha, LinkedBlockingDeque<TareaEnColaGestionPropia> listaTarea, PuebloMaximaMinima maximaMinima) {
         this.fecha = fecha;
         this.listaTarea = listaTarea;
         this.maximaMinima = maximaMinima;
@@ -397,3 +429,5 @@ class TareaEnColaGestionPropia {
         return codPueblo;
     }
 }
+
+// ============================================================================
