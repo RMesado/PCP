@@ -2,12 +2,12 @@ package Practica7;
 
 
 import java.io.*;
-import java.net.*;
-import java.util.*;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.concurrent.*;
-import java.util.concurrent.atomic.AtomicInteger;
 
-import static Practica7.EjemploTemperaturaProvincia.ProcesaPueblo;
 
 class EjemploTemperaturaProvincia {
     public static void main(String[] args) {
@@ -124,20 +124,38 @@ class EjemploTemperaturaProvincia {
         obtenMayorDiferenciaDeFichero(nombreFichero, fecha, codProvincia, MaxMin, 2, numHebras);
         t2 = System.nanoTime();
         tp = ((double) (t2 - t1)) / 1.0e9;
-        System.out.print("Implementacion paralela: Thread Pool on isTerminated.     ");
+        System.out.print("Implementacion paralela: Thread Pool con isTerminated.     ");
         System.out.println(" Tiempo(s): " + tp + " , Incremento: " + ts / tp);
         System.out.println("  Pueblo: " + MaxMin.damePueblo() + " , Maxima = " + MaxMin.dameTemperaturaMaxima() +
                 " , Minima = " + MaxMin.dameTemperaturaMinima());
 
         //
         // Implementacion paralela: Thread Pool con awaitTermination.
-        //
-        // ...
+
+        System.out.println();
+        t1 = System.nanoTime();
+        MaxMin = new PuebloMaximaMinima();
+        obtenMayorDiferenciaDeFichero(nombreFichero, fecha, codProvincia, MaxMin, 3, numHebras);
+        t2 = System.nanoTime();
+        tp = ((double) (t2 - t1)) / 1.0e9;
+        System.out.print("Implementacion paralela: Thread Pool con awaitTermination.     ");
+        System.out.println(" Tiempo(s): " + tp + " , Incremento: " + ts / tp);
+        System.out.println("  Pueblo: " + MaxMin.damePueblo() + " , Maxima = " + MaxMin.dameTemperaturaMaxima() +
+                " , Minima = " + MaxMin.dameTemperaturaMinima());
 
         //
         // Implementacion paralela: Thread Pool con Future.
-        //
-        // ...
+
+        System.out.println();
+        t1 = System.nanoTime();
+        MaxMin = new PuebloMaximaMinima();
+        obtenMayorDiferenciaDeFichero(nombreFichero, fecha, codProvincia, MaxMin, 4, numHebras);
+        t2 = System.nanoTime();
+        tp = ((double) (t2 - t1)) / 1.0e9;
+        System.out.print("Implementacion paralela: Thread Pool con Callable.     ");
+        System.out.println(" Tiempo(s): " + tp + " , Incremento: " + ts / tp);
+        System.out.println("  Pueblo: " + MaxMin.damePueblo() + " , Maxima = " + MaxMin.dameTemperaturaMaxima() +
+                " , Minima = " + MaxMin.dameTemperaturaMinima());
 
     }
 
@@ -220,36 +238,94 @@ class EjemploTemperaturaProvincia {
                     }
                     break;
                 case 2: // ThreadPools con isTerminated
-                    //LinkedBlockingDeque<TareaEnColaGestionPropia> listaTarea2 = new LinkedBlockingDeque<>();
-                    ExecutorService executor = Executors.newFixedThreadPool(numHebras);
+                    exec = Executors.newFixedThreadPool(numHebras);
                     class Tarea1 implements Runnable {
                         final int codpueblo;
 
                         Tarea1(int codpueblo) {
+
                             this.codpueblo = codpueblo;
                         }
 
                         public void run() {
+
                             ProcesaPueblo(fecha, codpueblo, MaxMin, false);
                         }
                     }
                     while ((linea = br.readLine()) != null) {
                         int codPueblo = Integer.parseInt(linea);
-                        executor.execute(new Tarea1(codPueblo));
+                        exec.execute(new Tarea1(codPueblo));
                     }
-                    executor.shutdown();
-                    try{
-                        while(!executor.isTerminated()){
+                    exec.shutdown();
+                    try {
+                        while (!exec.isTerminated()) {
                         }
                     } catch (Exception e) {
                         e.printStackTrace();
                     }
                     break;
                 case 3: // ThreadPools con awaitTermination
-                    // ...
+                    exec = Executors.newFixedThreadPool(numHebras);
+                    class Tarea2 implements Runnable {
+                        final int codpueblo;
+
+                        Tarea2(int codpueblo) {
+
+                            this.codpueblo = codpueblo;
+                        }
+
+                        public void run() {
+
+                            ProcesaPueblo(fecha, codpueblo, MaxMin, false);
+                        }
+                    }
+                    while ((linea = br.readLine()) != null) {
+                        int codPueblo = Integer.parseInt(linea);
+                        exec.execute(new Tarea2(codPueblo));
+                    }
+                    exec.shutdown();
+                    try {
+                        while (!exec.awaitTermination(2L, TimeUnit.MILLISECONDS)) {
+                        }
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
                     break;
                 case 4: // ThreadPools + con Future
-                    // ...
+                    exec = Executors.newFixedThreadPool(numHebras);
+                    Future<PuebloMaximaMinima> f;
+                    ArrayList<Future<PuebloMaximaMinima>> alf = new ArrayList<Future<PuebloMaximaMinima>>();
+                    PuebloMaximaMinima maxMin= new PuebloMaximaMinima();
+
+                    class Tarea3 implements Callable<PuebloMaximaMinima> {
+                        final int codpueblo;
+                        PuebloMaximaMinima maxMin;
+                        Tarea3(int codpueblo, PuebloMaximaMinima maxMin) {
+
+                            this.codpueblo = codpueblo;
+                            this.maxMin = maxMin;
+                        }
+
+                        public PuebloMaximaMinima call() throws ExecutionException, InterruptedException {
+                            ProcesaPueblo(fecha, codpueblo, maxMin, false);
+                            return this.maxMin;
+                        }
+                    }
+                    while ((linea = br.readLine()) != null) {
+                        int codPueblo = Integer.parseInt(linea);
+                        f = exec.submit(new Tarea3(codPueblo, maxMin));
+                        alf.add(f);
+                    }
+                    exec.shutdown();
+                    for(int i = 0; i<alf.size(); i++) {
+                        try {
+                            f = alf.get(i);
+                            PuebloMaximaMinima fResultado = f.get();
+                            MaxMin.actualizaMaxMin(fResultado.poblacion, fResultado.codigo, fResultado.max, fResultado.min);
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                        }
+                    }
                     break;
                 default:
                     break;
@@ -402,7 +478,7 @@ class hebraConsumidora extends Thread {
             }
             if (tarea != null) {
                 if (!tarea.isEsVeneno()) {
-                    ProcesaPueblo(fecha, tarea.getCodPueblo(), maximaMinima, false);
+                    EjemploTemperaturaProvincia.ProcesaPueblo(fecha, tarea.getCodPueblo(), maximaMinima, false);
                 } else this.fin = tarea.isEsVeneno();
             }
         }
@@ -415,7 +491,7 @@ class TareaEnColaGestionPropia {
     boolean esVeneno;
     int codPueblo;
 
-    // −−−−−−−−−−−−−−−−−−−−−−−−−−−−−−−−−−−−−−−−−−−−−−−−−−−−−−−−−−−−−−−−−−−−−−−−−−
+    // ============================================================================
     public TareaEnColaGestionPropia(boolean esVeneno, int codPueblo) {
         this.esVeneno = esVeneno;
         this.codPueblo = codPueblo;
